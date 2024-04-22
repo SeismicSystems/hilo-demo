@@ -1,0 +1,16 @@
+{
+  "name": "client",
+  "version": "1.0.0",
+  "description": "",
+  "main": "client.ts",
+  "scripts": {
+    "dev": "pnpm tsx client.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "tsx": "^4.7.2",
+    "viem": "^2.9.25"
+  }
+}

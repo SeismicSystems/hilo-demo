@@ -3,7 +3,9 @@ pragma solidity ^0.8.25;
 contract HiLo {
     struct Player {
         address addr;
-        uint8 nBetsPlaced;
+        uint8 nBetsCommitted;
+        uint8 nBetsRevealed;
+        uint256 chips;
     }
 
     Player public A;
@@ -12,7 +14,8 @@ contract HiLo {
     uint256 private currentRound;
     bool private activeGame;
 
-    event StartRound(uint256 roundIndex);
+    event OpenRound(uint256 roundIndex);
+    event CloseRound(uint256 roundIndex);
     event GameEnd();
 
     constructor(uint256 _nRounds) {
@@ -22,7 +25,7 @@ contract HiLo {
     function attemptStartGame() internal {
         if (A.addr != address(0) && B.addr != address(0)) {
             activeGame = true;
-            emit StartRound(currentRound);
+            emit OpenRound(currentRound);
         }
     }
 
@@ -41,10 +44,24 @@ contract HiLo {
         claimPlayer(B);
     }
 
-    function attemptIncrementRound() internal {
-        if (A.nBetsPlaced > currentRound && B.nBetsPlaced > currentRound) {
+    function attemptCloseRound() internal {
+        if (
+            A.nBetsCommitted > currentRound && B.nBetsCommitted > currentRound
+        ) {
+            emit CloseRound(currentRound);
             currentRound++;
-            emit StartRound(currentRound);
+            if (currentRound == nRounds) {
+                activeGame = false;
+                emit GameEnd();
+            }
+        }
+    }
+
+    function attemptAlertNewRound() internal {
+        if (
+            A.nBetsRevealed == currentRound && B.nBetsRevealed == currentRound
+        ) {
+            emit OpenRound(currentRound);
         }
     }
 
@@ -58,24 +75,30 @@ contract HiLo {
         revert("Sender is not registered for this game.");
     }
 
-    function bet() external openTurn {
-        getPlayer().nBetsPlaced++;
-        attemptIncrementRound();
-        attemptEndGame();
+    function commitBet() external requireActiveAndUncommitted {
+        getPlayer().nBetsCommitted++;
+        attemptCloseRound();
     }
 
-    function attemptEndGame() internal {
-        if (currentRound == nRounds) {
-            activeGame = false;
-            emit GameEnd();
-        }
+    // caution, doesn't block new commitments before claiming
+    function revealBet() external requireRevealOnce {
+        getPlayer().nBetsRevealed++;
+        attemptAlertNewRound();
     }
 
-    modifier openTurn() {
+    modifier requireActiveAndUncommitted() {
         require(activeGame, "Game is currently not active.");
         require(
-            getPlayer().nBetsPlaced == currentRound,
+            getPlayer().nBetsCommitted == currentRound,
             "Already made a move this round."
+        );
+        _;
+    }
+
+    modifier requireRevealOnce() {
+        require(
+            getPlayer().nBetsRevealed == currentRound - 1,
+            "Can only reveal bet once for previous round."
         );
         _;
     }

@@ -8,6 +8,26 @@ enum BetDirection {
     Lower = "L",
 }
 
+const eventHandlers = {
+    OpenRound: openRoundHandler,
+    CloseRound: closeRoundHandler,
+    GameEnd: gameEndHandler,
+};
+
+function openRoundHandler(log: any) {
+    askValidBet();
+    contract.write.commitBet();
+}
+
+function closeRoundHandler(log: any) {
+    console.log("revealing bet");
+    contract.write.revealBet();
+}
+
+function gameEndHandler(log: any) {
+    console.log("LOG IN GAME END HANDLER:", log);
+}
+
 function askValidBet(): BetDirection {
     const direction: BetDirection = readlineSync.question(
         "- Would you like to bet higher (H) or lower (L)? "
@@ -20,21 +40,21 @@ function askValidBet(): BetDirection {
 }
 
 function attachGameLoop() {
-    publicClient.watchEvent({
-        event: EventABIs["StartRound"],
-        strict: true,
-        onLogs: (logs: [any]) => {
-            logs.forEach(async (log) => {
-                askValidBet();
-                contract.write.bet();
-            });
-        },
+    Object.entries(EventABIs).forEach(([name, abi]) => {
+        publicClient.watchEvent({
+            address: contract.address,
+            event: abi,
+            strict: true,
+            onLogs: (logs: [any]) => {
+                logs.forEach((log: any) =>
+                    eventHandlers[name as keyof typeof eventHandlers](log)
+                );
+            },
+        });
     });
 }
 
-async function claimPlayer(
-    playerLabel: string
-) {
+async function claimPlayer(playerLabel: string) {
     const claimFunc =
         playerLabel === "A"
             ? contract.write.claimPlayerA

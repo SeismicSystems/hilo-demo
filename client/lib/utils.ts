@@ -4,7 +4,7 @@ import {
     createWalletClient,
     createPublicClient,
     getContract,
-    http
+    http,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
@@ -12,10 +12,14 @@ import { foundry } from "viem/chains";
 import { DEPLOY_PATH, HILO_ABI_PATH } from "./constants";
 
 export const EventABIs = {
-    StartRound: parseAbiItem("event StartRound(uint256 roundIndex)")
+    OpenRound: parseAbiItem("event OpenRound(uint256 roundIndex)"),
+    CloseRound: parseAbiItem("event CloseRound(uint256 roundIndex)"),
+    GameEnd: parseAbiItem("event GameEnd()"),
 };
 
-export async function contractInterfaceSetup(privKey: string): Promise<[any, any]> {
+export async function contractInterfaceSetup(
+    privKey: string
+): Promise<[any, any]> {
     const hiloJSON = await import(HILO_ABI_PATH, { assert: { type: "json" } });
     const deployJSON = await import(DEPLOY_PATH, { assert: { type: "json" } });
 
@@ -35,7 +39,7 @@ export async function contractInterfaceSetup(privKey: string): Promise<[any, any
         abi: hiloJSON.abi,
         client: {
             public: publicClient,
-            wallet: walletClient
+            wallet: walletClient,
         },
     });
     return [publicClient, contract];

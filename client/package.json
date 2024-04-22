@@ -4,13 +4,18 @@
   "description": "",
   "main": "client.ts",
   "scripts": {
-    "dev": "pnpm tsx client.ts"
+    "devA": "pnpm tsx client.ts 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+    "devB": "pnpm tsx client.ts 5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "path": "^0.12.7",
     "tsx": "^4.7.2",
     "viem": "^2.9.25"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7"
   }
 }

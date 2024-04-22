@@ -1,8 +1,9 @@
 import {
-    EventABIs
+    EventABIs,
+    contractInterfaceSetup
 } from "./lib/utils";
 
-let publicClient;
+let publicClient: any, contract: any;
 
 function attachGameLoop() {
     publicClient.watchEvent({
@@ -17,5 +18,9 @@ function attachGameLoop() {
 }
 
 (async () => {
+    let privKey = process.argv[2];
+
+    [publicClient, contract] = await contractInterfaceSetup(privKey);
     attachGameLoop();
+    contract.write.bet();
 })();

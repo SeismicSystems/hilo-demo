@@ -15,22 +15,26 @@ const eventHandlers = {
 };
 
 function openRoundHandler(log: any) {
+    console.log(`== Beginning round ${log.args.roundIndex}`);
     askValidBet();
+    console.log("- Committed to bet");
     contract.write.commitBet();
 }
 
 function closeRoundHandler(log: any) {
-    console.log("revealing bet");
     contract.write.revealBet();
+    console.log("- Revealed bet");
+    console.log("==\n");
 }
 
 function gameEndHandler(log: any) {
-    console.log("LOG IN GAME END HANDLER:", log);
+    console.log("== Game has ended");
+    console.log("==\n");
 }
 
 function askValidBet(): BetDirection {
     const direction: BetDirection = readlineSync.question(
-        "- Would you like to bet higher (H) or lower (L)? "
+        "- Higher (H) or lower (L)? "
     );
     if (!Object.values(BetDirection).includes(direction)) {
         console.error("ERROR. Invalid input. Enter 'H' or 'L'.");
@@ -55,16 +59,21 @@ function attachGameLoop() {
 }
 
 async function claimPlayer(playerLabel: string) {
+    console.log(`== Claiming player ${playerLabel} slot`);
     const claimFunc =
         playerLabel === "A"
             ? contract.write.claimPlayerA
             : contract.write.claimPlayerB;
 
+    console.log("- Broadcasting");
     let [res, err] = await handleAsync(claimFunc());
+
     if (!res || err) {
         console.error("ERROR. Can't claim player:", err);
         process.exit(1);
     }
+    console.log("- Done");
+    console.log("==\n");
 }
 
 (async () => {

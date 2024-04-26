@@ -1,7 +1,7 @@
 RPC_URL=http://localhost:8545
 DEV_PRIV_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 
-N_ROUNDS=3
+N_ROUNDS=2
 
 forge create src/HiLo.sol:HiLo \
     --rpc-url $RPC_URL \

@@ -52,7 +52,6 @@ contract HiLo {
             currentRound++;
             if (currentRound == nRounds) {
                 activeGame = false;
-                emit GameEnd();
             }
         }
     }
@@ -61,7 +60,11 @@ contract HiLo {
         if (
             A.nBetsRevealed == currentRound && B.nBetsRevealed == currentRound
         ) {
-            emit OpenRound(currentRound);
+            if (!activeGame) {
+                emit GameEnd();
+            } else {
+                emit OpenRound(currentRound);
+            }
         }
     }
 

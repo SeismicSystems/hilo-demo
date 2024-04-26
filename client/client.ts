@@ -30,11 +30,12 @@ function closeRoundHandler(log: any) {
 function gameEndHandler(log: any) {
     console.log("== Game has ended");
     console.log("==\n");
+    process.exit(0);
 }
 
 function askValidBet(): BetDirection {
     const direction: BetDirection = readlineSync.question(
-        "- Higher (H) or lower (L)? "
+        "- Higher (H) or lower (L)? ",
     );
     if (!Object.values(BetDirection).includes(direction)) {
         console.error("ERROR. Invalid input. Enter 'H' or 'L'.");
@@ -51,7 +52,7 @@ function attachGameLoop() {
             strict: true,
             onLogs: (logs: [any]) => {
                 logs.forEach((log: any) =>
-                    eventHandlers[name as keyof typeof eventHandlers](log)
+                    eventHandlers[name as keyof typeof eventHandlers](log),
                 );
             },
         });
@@ -81,7 +82,7 @@ async function claimPlayer(playerLabel: string) {
     let privKey = process.argv[3];
     if (!playerLabel || !privKey) {
         throw new Error(
-            "Please specify player label and dev private key in CLI."
+            "Please specify player label and dev private key in CLI.",
         );
     }
 

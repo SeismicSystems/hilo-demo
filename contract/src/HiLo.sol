@@ -5,12 +5,21 @@ contract HiLo {
         address addr;
         uint8 nBetsCommitted;
         uint8 nBetsRevealed;
-        uint256 chips;
+        bool latestBet;
+        uint128 chips;
     }
+
+    struct Card {
+        uint8 suit;
+        uint8 rank;
+    }
+
+    uint256 private nRounds;
+    uint128 private startingChips;
 
     Player public A;
     Player public B;
-    uint256 private nRounds;
+    Card public latestCard;
     uint256 private currentRound;
     bool private activeGame;
 
@@ -18,14 +27,16 @@ contract HiLo {
     event CloseRound(uint256 roundIndex);
     event GameEnd();
 
-    constructor(uint256 _nRounds) {
+    constructor(uint256 _nRounds, uint128 _startingChips) {
         nRounds = _nRounds;
+        startingChips = _startingChips;
     }
 
     function attemptStartGame() internal {
         if (A.addr != address(0) && B.addr != address(0)) {
             activeGame = true;
             emit OpenRound(currentRound);
+            latestCard = draw();
         }
     }
 
@@ -33,6 +44,7 @@ contract HiLo {
         Player storage player
     ) internal playerNotClaimed(player) {
         player.addr = msg.sender;
+        player.chips = startingChips;
         attemptStartGame();
     }
 
@@ -42,6 +54,21 @@ contract HiLo {
 
     function claimPlayerB() external {
         claimPlayer(B);
+    }
+
+    function getChipsA() external view returns (uint128) {
+        return A.chips;
+    }
+
+    function getChipsB() external view returns (uint128) {
+        return B.chips;
+    }
+
+    // uses last block hash in place of VRF, do not use in production
+    function draw() public view returns (Card memory) {
+        uint256 rand = uint256(blockhash(block.number - 1));
+        uint8 cardIdx = uint8(rand % 52);
+        return Card({suit: cardIdx / 13, rank: cardIdx % 13});
     }
 
     function attemptCloseRound() internal {
@@ -56,10 +83,29 @@ contract HiLo {
         }
     }
 
-    function attemptAlertNewRound() internal {
+    function chipMultiplier(
+        uint128 chips,
+        bool outcome,
+        bool bet
+    ) internal pure returns (uint128) {
+        return outcome == bet ? chips * 2 : 0;
+    }
+
+    function distributeWinnings() internal {
+        Card memory nextCard = draw();
+        if (nextCard.rank != latestCard.rank) {
+            bool isHigher = nextCard.rank > latestCard.rank;
+            A.chips = chipMultiplier(A.chips, isHigher, A.latestBet);
+            B.chips = chipMultiplier(B.chips, isHigher, B.latestBet);
+        }
+        latestCard = nextCard;
+    }
+
+    function attemptOpenNewRound() internal {
         if (
             A.nBetsRevealed == currentRound && B.nBetsRevealed == currentRound
         ) {
+            distributeWinnings();
             if (!activeGame) {
                 emit GameEnd();
             } else {
@@ -84,9 +130,11 @@ contract HiLo {
     }
 
     // caution, doesn't block new commitments before claiming
-    function revealBet() external requireRevealOnce {
-        getPlayer().nBetsRevealed++;
-        attemptAlertNewRound();
+    function revealBet(bool bet) external requireRevealOnce {
+        Player storage p = getPlayer();
+        p.nBetsRevealed++;
+        p.latestBet = bet;
+        attemptOpenNewRound();
     }
 
     modifier requireActiveAndUncommitted() {

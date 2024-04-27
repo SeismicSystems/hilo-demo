@@ -3,6 +3,9 @@ import * as readlineSync from "readline-sync";
 import { EventABIs, contractInterfaceSetup, handleAsync } from "./lib/utils";
 
 let publicClient: any, contract: any;
+let playerLabel: string;
+let latestBet: BetDirection;
+
 enum BetDirection {
     Higher = "H",
     Lower = "L",
@@ -14,21 +17,31 @@ const eventHandlers = {
     GameEnd: gameEndHandler,
 };
 
-function openRoundHandler(log: any) {
+async function logChipBalance() {
+    const balance = await (playerLabel == "A"
+        ? contract.read.getChipsA()
+        : contract.read.getChipsB());
+    console.log("- Number of chips:", balance.toString());
+}
+
+async function openRoundHandler(log: any) {
     console.log(`== Beginning round ${log.args.roundIndex}`);
-    askValidBet();
+    await logChipBalance();
+    latestBet = askValidBet();
     console.log("- Committed to bet");
     contract.write.commitBet();
 }
 
-function closeRoundHandler(log: any) {
-    contract.write.revealBet();
+async function closeRoundHandler(log: any) {
+    const encodedBet = latestBet == BetDirection.Higher ? 1 : 0;
+    contract.write.revealBet(encodedBet);
     console.log("- Revealed bet");
     console.log("==\n");
 }
 
-function gameEndHandler(log: any) {
+async function gameEndHandler(log: any) {
     console.log("== Game has ended");
+    await logChipBalance();
     console.log("==\n");
     process.exit(0);
 }
@@ -78,11 +91,11 @@ async function claimPlayer(playerLabel: string) {
 }
 
 (async () => {
-    let playerLabel = process.argv[2];
+    playerLabel = process.argv[2];
     let privKey = process.argv[3];
-    if (!playerLabel || !privKey) {
+    if ((playerLabel != "A" && playerLabel != "B") || !privKey) {
         throw new Error(
-            "Please specify player label and dev private key in CLI.",
+            "Please specify valid player label and dev private key in CLI.",
         );
     }
 

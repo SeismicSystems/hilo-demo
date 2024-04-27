@@ -25,7 +25,7 @@ contract HiLo {
 
     event OpenRound(uint256 roundIndex);
     event CloseRound(uint256 roundIndex);
-    event GameEnd();
+    event GameEnd(string winner);
 
     constructor(uint256 _nRounds, uint128 _startingChips) {
         nRounds = _nRounds;
@@ -107,7 +107,7 @@ contract HiLo {
         ) {
             distributeWinnings();
             if (!activeGame) {
-                emit GameEnd();
+                emit GameEnd(A.chips > B.chips ? 'A' : 'B');
             } else {
                 emit OpenRound(currentRound);
             }

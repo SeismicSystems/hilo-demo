@@ -18,10 +18,10 @@ const eventHandlers = {
 };
 
 async function logChipBalance() {
-    const balance = await (playerLabel == "A"
-        ? contract.read.getChipsA()
-        : contract.read.getChipsB());
-    console.log("- Number of chips:", balance.toString());
+    const balanceA = await contract.read.getChipsA();
+    const balanceB = await contract.read.getChipsB();
+    console.log("- Number of chips (Player A):", balanceA.toString());
+    console.log("- Number of chips (Player B):", balanceB.toString());
 }
 
 async function openRoundHandler(log: any) {
@@ -33,8 +33,8 @@ async function openRoundHandler(log: any) {
 }
 
 async function closeRoundHandler(log: any) {
-    const encodedBet = latestBet == BetDirection.Higher ? 1 : 0;
-    contract.write.revealBet(encodedBet);
+    const encodedBet = latestBet == BetDirection.Higher ? true : false;
+    contract.write.revealBet([encodedBet]);
     console.log("- Revealed bet");
     console.log("==\n");
 }
@@ -42,6 +42,7 @@ async function closeRoundHandler(log: any) {
 async function gameEndHandler(log: any) {
     console.log("== Game has ended");
     await logChipBalance();
+    console.log(`- Player ${log.args.winner} wins`)
     console.log("==\n");
     process.exit(0);
 }

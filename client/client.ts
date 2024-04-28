@@ -1,16 +1,13 @@
 import * as readlineSync from "readline-sync";
+import { encodePacked, keccak256 } from "viem";
 
-import {
-    EventABIs,
-    contractInterfaceSetup,
-    handleAsync,
-    formatCard,
-} from "./lib/utils";
+import { EventABIs, contractInterfaceSetup, formatCard } from "./lib/utils";
 
 type Bet = {
     amount: number;
     direction: boolean;
 };
+const BetSolTypes = ["uint128", "bool"];
 
 let publicClient: any, contract: any;
 let playerLabel: string;
@@ -33,18 +30,25 @@ async function logGameStatus(): Promise<number> {
     return playerLabel == "A" ? balanceA : balanceB;
 }
 
+async function broadcastBetCommit() {
+    const betCommit = BigInt(keccak256(
+        encodePacked(BetSolTypes, [latestBet.amount, latestBet.direction])
+    ));
+    await contract.write.commitBet([betCommit]);
+    console.log("  - Committed to bet");
+}
+
 async function openRoundHandler(log: any) {
     console.log(`== Beginning round ${log.args.roundIndex}`);
     const playerBalance = await logGameStatus();
     console.log("- Bet");
     latestBet = await askValidBet(playerBalance);
     console.log("- Process");
-    console.log("  - Committed to bet");
-    contract.write.commitBet();
+    await broadcastBetCommit();
 }
 
 async function closeRoundHandler(log: any) {
-    contract.write.revealBet([latestBet.amount, latestBet.direction]);
+    await contract.write.revealBet([latestBet.amount, latestBet.direction]);
     console.log("  - Revealed bet");
     console.log("==\n");
 }
@@ -102,12 +106,7 @@ async function claimPlayer(playerLabel: string) {
             : contract.write.claimPlayerB;
 
     console.log("- Broadcasting");
-    let [res, err] = await handleAsync(claimFunc());
-
-    if (!res || err) {
-        console.error("ERROR. Can't claim player:", err);
-        process.exit(1);
-    }
+    await claimFunc();
     console.log("- Done");
     console.log("==\n");
 }

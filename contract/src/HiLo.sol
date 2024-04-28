@@ -10,6 +10,7 @@ contract HiLo {
         address addr;
         uint8 nBetsCommitted;
         uint8 nBetsRevealed;
+        uint256 latestBetCommitment;
         Bet latestBet;
         uint128 chips;
     }
@@ -164,19 +165,37 @@ contract HiLo {
         revert("Sender is not registered for this game.");
     }
 
-    function commitBet() external requireActiveAndUncommitted {
-        getPlayer().nBetsCommitted++;
+    function commitBet(uint256 betCommit) external requireActiveAndUncommitted {
+        Player storage pl = getPlayer();
+        pl.latestBetCommitment = betCommit;
+        pl.nBetsCommitted++;
         attemptCloseRound();
     }
 
     function revealBet(
         uint128 amount,
         bool direction
-    ) external requireRevealOnce requireSufficientChips(amount) {
+    )
+        external
+        requireRevealOnce
+        requireSufficientChips(amount)
+        requireValidOpening(amount, direction)
+    {
         Player storage p = getPlayer();
         p.nBetsRevealed++;
         p.latestBet = Bet(amount, direction);
         attemptOpenNewRound();
+    }
+
+    modifier requireValidOpening(uint128 amount, bool direction) {
+        uint256 betHash = uint256(
+            keccak256(abi.encodePacked(amount, direction))
+        );
+        require(
+            betHash == getPlayer().latestBetCommitment,
+            "Bet is not a valid opening of latest commitment for this player."
+        );
+        _;
     }
 
     modifier requireMultiplierLen() {

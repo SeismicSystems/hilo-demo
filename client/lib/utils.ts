@@ -45,17 +45,6 @@ export async function contractInterfaceSetup(
     return [publicClient, contract];
 }
 
-export async function handleAsync<T>(
-    promise: Promise<T>
-): Promise<[T, null] | [null, any]> {
-    try {
-        const data = await promise;
-        return [data, null];
-    } catch (error) {
-        return [null, error];
-    }
-}
-
 export function formatCard(card: [number, number]): string {
     const suit = SUITS[card[0]];
     const rank = RANKS[card[1]];

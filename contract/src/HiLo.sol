@@ -2,8 +2,8 @@ pragma solidity ^0.8.25;
 
 contract HiLo {
     struct Bet {
-        bool direction;
         uint128 amount;
+        bool direction;
     }
 
     struct Player {
@@ -19,6 +19,26 @@ contract HiLo {
         uint8 rank;
     }
 
+    // values from https://wizardofodds.com/games/draw-hi-lo/
+    uint128[13] public MULTIPLIERS = [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        18,
+        20,
+        30,
+        30,
+        50,
+        120,
+        0
+    ];
+    uint128 public constant MULTIPLIER_SCALE = 10;
+    uint8 public constant N_RANKS = 13;
+    uint8 public constant N_SUITS = 4;
+
     uint256 private nRounds;
     uint128 private startingChips;
 
@@ -32,7 +52,7 @@ contract HiLo {
     event CloseRound(uint256 roundIndex);
     event GameEnd(string winner);
 
-    constructor(uint256 _nRounds, uint128 _startingChips) {
+    constructor(uint256 _nRounds, uint128 _startingChips) requireMultiplierLen {
         nRounds = _nRounds;
         startingChips = _startingChips;
     }
@@ -70,10 +90,11 @@ contract HiLo {
     }
 
     // uses last block hash in place of VRF, do not use in production
+    // drawn with replacement, typical game not like this
     function draw() public view returns (Card memory) {
         uint256 rand = uint256(blockhash(block.number - 1));
-        uint8 cardIdx = uint8(rand % 52);
-        return Card({suit: cardIdx / 13, rank: cardIdx % 13});
+        uint8 cardIdx = uint8(rand % (N_SUITS * N_RANKS));
+        return Card({suit: cardIdx / N_RANKS, rank: cardIdx % N_RANKS});
     }
 
     function attemptCloseRound() internal {
@@ -88,12 +109,25 @@ contract HiLo {
         }
     }
 
+    function scaledMuliplierLookup(
+        bool direction,
+        uint8 rank
+    ) public view returns (uint128) {
+        return
+            direction
+                ? MULTIPLIERS[rank]
+                : MULTIPLIERS[MULTIPLIERS.length - rank];
+    }
+
     function chipCalculator(
         Player memory player,
         bool outcome
-    ) internal pure returns (uint128) {
+    ) internal view returns (uint128) {
         Bet memory lb = player.latestBet;
-        uint128 delta = outcome == lb.direction ? lb.amount * 2 : 0;
+        uint128 deltaScaled = outcome == lb.direction
+            ? lb.amount * scaledMuliplierLookup(lb.direction, latestCard.rank)
+            : 0;
+        uint128 delta = deltaScaled / MULTIPLIER_SCALE;
         return player.chips - lb.amount + delta;
     }
 
@@ -136,13 +170,21 @@ contract HiLo {
     }
 
     function revealBet(
-        bool bet,
-        uint128 amount
+        uint128 amount,
+        bool direction
     ) external requireRevealOnce requireSufficientChips(amount) {
         Player storage p = getPlayer();
         p.nBetsRevealed++;
-        p.latestBet = Bet(bet, amount);
+        p.latestBet = Bet(amount, direction);
         attemptOpenNewRound();
+    }
+
+    modifier requireMultiplierLen() {
+        require(
+            MULTIPLIERS.length == N_RANKS,
+            "Invalid length for multiplier array"
+        );
+        _;
     }
 
     modifier requireSufficientChips(uint128 amount) {

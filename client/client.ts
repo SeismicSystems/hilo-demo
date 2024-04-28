@@ -8,8 +8,8 @@ import {
 } from "./lib/utils";
 
 type Bet = {
-    direction: boolean;
     amount: number;
+    direction: boolean;
 };
 
 let publicClient: any, contract: any;
@@ -44,7 +44,7 @@ async function openRoundHandler(log: any) {
 }
 
 async function closeRoundHandler(log: any) {
-    contract.write.revealBet([latestBet.direction, latestBet.amount]);
+    contract.write.revealBet([latestBet.amount, latestBet.direction]);
     console.log("  - Revealed bet");
     console.log("==\n");
 }
@@ -57,7 +57,7 @@ async function gameEndHandler(log: any) {
     process.exit(0);
 }
 
-function validBet(directionStr: string, amount: number, playerBalance: number) {
+function validBet(amount: number, directionStr: string, playerBalance: number) {
     return (
         ["H", "L"].includes(directionStr) &&
         amount >= 0 &&
@@ -66,15 +66,15 @@ function validBet(directionStr: string, amount: number, playerBalance: number) {
 }
 
 async function askValidBet(playerBalance: number): Promise<Bet> {
-    const directionStr = readlineSync.question("  - Higher (H) or lower (L)? ");
     const amount = parseInt(readlineSync.question("  - How many chips? "));
-    if (!validBet(directionStr, amount, playerBalance)) {
+    const directionStr = readlineSync.question("  - Higher (H) or lower (L)? ");
+    if (!validBet(amount, directionStr, playerBalance)) {
         console.error("ERROR. Invalid input. Try again.");
         return askValidBet(playerBalance);
     }
     const bet: Bet = {
-        direction: directionStr == "H",
         amount: amount,
+        direction: directionStr == "H",
     };
     return bet;
 }

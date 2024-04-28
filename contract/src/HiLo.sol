@@ -51,6 +51,8 @@ contract HiLo {
 
     event OpenRound(uint256 roundIndex);
     event CloseRound(uint256 roundIndex);
+    event CommitBet(uint256 h);
+    event RevealBet(uint128 amount, bool direction);
     event GameEnd(string winner);
 
     constructor(uint256 _nRounds, uint128 _startingChips) requireMultiplierLen {
@@ -166,6 +168,7 @@ contract HiLo {
     }
 
     function commitBet(uint256 betCommit) external requireActiveAndUncommitted {
+        emit CommitBet(betCommit);
         Player storage pl = getPlayer();
         pl.latestBetCommitment = betCommit;
         pl.nBetsCommitted++;
@@ -181,6 +184,7 @@ contract HiLo {
         requireSufficientChips(amount)
         requireValidOpening(amount, direction)
     {
+        emit RevealBet(amount, direction);
         Player storage p = getPlayer();
         p.nBetsRevealed++;
         p.latestBet = Bet(amount, direction);

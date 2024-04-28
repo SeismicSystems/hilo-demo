@@ -15,6 +15,8 @@ export const EventABIs = {
     OpenRound: parseAbiItem("event OpenRound(uint256 roundIndex)"),
     CloseRound: parseAbiItem("event CloseRound(uint256 roundIndex)"),
     GameEnd: parseAbiItem("event GameEnd(string winner)"),
+    CommitBet: parseAbiItem("event CommitBet(uint256 betHash)"),
+    RevealBet: parseAbiItem("event RevealBet(uint128 amount, bool direction)"),
 };
 
 export async function contractInterfaceSetup(

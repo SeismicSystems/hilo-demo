@@ -1,15 +1,20 @@
 import * as readlineSync from "readline-sync";
 
-import { EventABIs, contractInterfaceSetup, handleAsync } from "./lib/utils";
+import {
+    EventABIs,
+    contractInterfaceSetup,
+    handleAsync,
+    formatCard,
+} from "./lib/utils";
+
+type Bet = {
+    direction: boolean;
+    amount: number;
+};
 
 let publicClient: any, contract: any;
 let playerLabel: string;
-let latestBet: BetDirection;
-
-enum BetDirection {
-    Higher = "H",
-    Lower = "L",
-}
+let latestBet: Bet;
 
 const eventHandlers = {
     OpenRound: openRoundHandler,
@@ -17,45 +22,61 @@ const eventHandlers = {
     GameEnd: gameEndHandler,
 };
 
-async function logChipBalance() {
+async function logGameStatus(): Promise<number> {
+    const liveCard = await contract.read.latestCard();
     const balanceA = await contract.read.getChipsA();
     const balanceB = await contract.read.getChipsB();
-    console.log("- Number of chips (Player A):", balanceA.toString());
-    console.log("- Number of chips (Player B):", balanceB.toString());
+    console.log("- Status");
+    console.log("  - Number of chips (Player A):", balanceA.toString());
+    console.log("  - Number of chips (Player B):", balanceB.toString());
+    console.log("  - Live card:", formatCard(liveCard));
+    return playerLabel == "A" ? balanceA : balanceB;
 }
 
 async function openRoundHandler(log: any) {
     console.log(`== Beginning round ${log.args.roundIndex}`);
-    await logChipBalance();
-    latestBet = askValidBet();
-    console.log("- Committed to bet");
+    const playerBalance = await logGameStatus();
+    console.log("- Bet");
+    latestBet = await askValidBet(playerBalance);
+    console.log("- Process");
+    console.log("  - Committed to bet");
     contract.write.commitBet();
 }
 
 async function closeRoundHandler(log: any) {
-    const encodedBet = latestBet == BetDirection.Higher ? true : false;
-    contract.write.revealBet([encodedBet]);
-    console.log("- Revealed bet");
+    contract.write.revealBet([latestBet.direction, latestBet.amount]);
+    console.log("  - Revealed bet");
     console.log("==\n");
 }
 
 async function gameEndHandler(log: any) {
     console.log("== Game has ended");
-    await logChipBalance();
-    console.log(`- Player ${log.args.winner} wins`)
+    await logGameStatus();
+    console.log(`- Player ${log.args.winner} wins`);
     console.log("==\n");
     process.exit(0);
 }
 
-function askValidBet(): BetDirection {
-    const direction: BetDirection = readlineSync.question(
-        "- Higher (H) or lower (L)? ",
+function validBet(directionStr: string, amount: number, playerBalance: number) {
+    return (
+        ["H", "L"].includes(directionStr) &&
+        amount >= 0 &&
+        amount <= playerBalance
     );
-    if (!Object.values(BetDirection).includes(direction)) {
-        console.error("ERROR. Invalid input. Enter 'H' or 'L'.");
-        return askValidBet();
+}
+
+async function askValidBet(playerBalance: number): Promise<Bet> {
+    const directionStr = readlineSync.question("  - Higher (H) or lower (L)? ");
+    const amount = parseInt(readlineSync.question("  - How many chips? "));
+    if (!validBet(directionStr, amount, playerBalance)) {
+        console.error("ERROR. Invalid input. Try again.");
+        return askValidBet(playerBalance);
     }
-    return direction;
+    const bet: Bet = {
+        direction: directionStr == "H",
+        amount: amount,
+    };
+    return bet;
 }
 
 function attachGameLoop() {
@@ -66,7 +87,7 @@ function attachGameLoop() {
             strict: true,
             onLogs: (logs: [any]) => {
                 logs.forEach((log: any) =>
-                    eventHandlers[name as keyof typeof eventHandlers](log),
+                    eventHandlers[name as keyof typeof eventHandlers](log)
                 );
             },
         });
@@ -96,7 +117,7 @@ async function claimPlayer(playerLabel: string) {
     let privKey = process.argv[3];
     if ((playerLabel != "A" && playerLabel != "B") || !privKey) {
         throw new Error(
-            "Please specify valid player label and dev private key in CLI.",
+            "Please specify valid player label and dev private key in CLI."
         );
     }
 

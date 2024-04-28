@@ -1,11 +1,16 @@
 pragma solidity ^0.8.25;
 
 contract HiLo {
+    struct Bet {
+        bool direction;
+        uint128 amount;
+    }
+
     struct Player {
         address addr;
         uint8 nBetsCommitted;
         uint8 nBetsRevealed;
-        bool latestBet;
+        Bet latestBet;
         uint128 chips;
     }
 
@@ -83,20 +88,21 @@ contract HiLo {
         }
     }
 
-    function chipMultiplier(
-        uint128 chips,
-        bool outcome,
-        bool bet
+    function chipCalculator(
+        Player memory player,
+        bool outcome
     ) internal pure returns (uint128) {
-        return outcome == bet ? chips * 2 : 0;
+        Bet memory lb = player.latestBet;
+        uint128 delta = outcome == lb.direction ? lb.amount * 2 : 0;
+        return player.chips - lb.amount + delta;
     }
 
     function distributeWinnings() internal {
         Card memory nextCard = draw();
         if (nextCard.rank != latestCard.rank) {
             bool isHigher = nextCard.rank > latestCard.rank;
-            A.chips = chipMultiplier(A.chips, isHigher, A.latestBet);
-            B.chips = chipMultiplier(B.chips, isHigher, B.latestBet);
+            A.chips = chipCalculator(A, isHigher);
+            B.chips = chipCalculator(B, isHigher);
         }
         latestCard = nextCard;
     }
@@ -107,7 +113,7 @@ contract HiLo {
         ) {
             distributeWinnings();
             if (!activeGame) {
-                emit GameEnd(A.chips > B.chips ? 'A' : 'B');
+                emit GameEnd(A.chips > B.chips ? "A" : "B");
             } else {
                 emit OpenRound(currentRound);
             }
@@ -129,12 +135,22 @@ contract HiLo {
         attemptCloseRound();
     }
 
-    // caution, doesn't block new commitments before claiming
-    function revealBet(bool bet) external requireRevealOnce {
+    function revealBet(
+        bool bet,
+        uint128 amount
+    ) external requireRevealOnce requireSufficientChips(amount) {
         Player storage p = getPlayer();
         p.nBetsRevealed++;
-        p.latestBet = bet;
+        p.latestBet = Bet(bet, amount);
         attemptOpenNewRound();
+    }
+
+    modifier requireSufficientChips(uint128 amount) {
+        require(
+            getPlayer().chips >= amount,
+            "Cannot bet more chips that you own"
+        );
+        _;
     }
 
     modifier requireActiveAndUncommitted() {

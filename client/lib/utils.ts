@@ -9,7 +9,7 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
 
-import { DEPLOY_PATH, HILO_ABI_PATH } from "./constants";
+import { DEPLOY_PATH, HILO_ABI_PATH, SUITS, RANKS } from "./constants";
 
 export const EventABIs = {
     OpenRound: parseAbiItem("event OpenRound(uint256 roundIndex)"),
@@ -54,4 +54,10 @@ export async function handleAsync<T>(
     } catch (error) {
         return [null, error];
     }
+}
+
+export function formatCard(card: [number, number]): string {
+    const suit = SUITS[card[0]];
+    const rank = RANKS[card[1]];
+    return `${suit}-${rank}`;
 }

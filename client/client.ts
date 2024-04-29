@@ -9,8 +9,13 @@ type Bet = {
 };
 const BetSolTypes = ["uint128", "bool"];
 
+enum PlayerLabel {
+    A = "A",
+    B = "B",
+}
+
 let publicClient: any, contract: any;
-let playerLabel: string;
+let playerIdx: number;
 let latestBet: Bet;
 
 const eventHandlers = {
@@ -19,21 +24,35 @@ const eventHandlers = {
     GameEnd: gameEndHandler,
 };
 
+async function getBalances(): Promise<[number, number]> {
+    return [
+        await contract.read.getChips([0]),
+        await contract.read.getChips([1]),
+    ];
+}
+
 async function logGameStatus(): Promise<number> {
     const liveCard = await contract.read.latestCard();
-    const balanceA = await contract.read.getChipsA();
-    const balanceB = await contract.read.getChipsB();
+    const balances = await getBalances();
     console.log("- Status");
-    console.log("  - Number of chips (Player A):", balanceA.toString());
-    console.log("  - Number of chips (Player B):", balanceB.toString());
+    console.log(
+        `  - Number of chips (${playerIdxToLabel(0)}):`,
+        balances[0].toString()
+    );
+    console.log(
+        `  - Number of chips (${playerIdxToLabel(1)}):`,
+        balances[1].toString()
+    );
     console.log("  - Live card:", formatCard(liveCard));
-    return playerLabel == "A" ? balanceA : balanceB;
+    return balances[playerIdx];
 }
 
 async function broadcastBetCommit() {
-    const betCommit = BigInt(keccak256(
-        encodePacked(BetSolTypes, [latestBet.amount, latestBet.direction])
-    ));
+    const betCommit = BigInt(
+        keccak256(
+            encodePacked(BetSolTypes, [latestBet.amount, latestBet.direction])
+        )
+    );
     await contract.write.commitBet([betCommit]);
     console.log("  - Committed to bet");
 }
@@ -56,7 +75,7 @@ async function closeRoundHandler(log: any) {
 async function gameEndHandler(log: any) {
     console.log("== Game has ended");
     await logGameStatus();
-    console.log(`- Player ${log.args.winner} wins`);
+    console.log(`- ${playerIdxToLabel(log.args.winnerIdx)} wins`);
     console.log("==\n");
     process.exit(0);
 }
@@ -98,29 +117,28 @@ function attachGameLoop() {
     });
 }
 
-async function claimPlayer(playerLabel: string) {
-    console.log(`== Claiming player ${playerLabel} slot`);
-    const claimFunc =
-        playerLabel === "A"
-            ? contract.write.claimPlayerA
-            : contract.write.claimPlayerB;
+function playerIdxToLabel(playerIndex: number): string {
+    return playerIndex === 0 ? "Alice" : "Bob";
+}
 
+async function broadcastPlayerClaim() {
+    console.log(`== Claiming ${playerIdxToLabel(playerIdx)} slot`);
     console.log("- Broadcasting");
-    await claimFunc();
+    await contract.write.claimPlayer([playerIdx]);
     console.log("- Done");
     console.log("==\n");
 }
 
 (async () => {
-    playerLabel = process.argv[2];
+    playerIdx = parseInt(process.argv[2]);
     let privKey = process.argv[3];
-    if ((playerLabel != "A" && playerLabel != "B") || !privKey) {
+    if (playerIdx < 0 || playerIdx >= 2 || !privKey) {
         throw new Error(
-            "Please specify valid player label and dev private key in CLI."
+            "Please specify valid player index and dev private key in CLI."
         );
     }
 
     [publicClient, contract] = await contractInterfaceSetup(privKey);
     attachGameLoop();
-    claimPlayer(playerLabel);
+    broadcastPlayerClaim();
 })();

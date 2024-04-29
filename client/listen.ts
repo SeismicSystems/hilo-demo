@@ -1,4 +1,4 @@
-import { EventABIs, contractInterfaceSetup } from "./lib/utils";
+import { EventABIs, contractInterfaceSetup } from "./utils";
 
 async function attachListener(publicClient: any, contract: any) {
     Object.values(EventABIs).forEach((abi) => {

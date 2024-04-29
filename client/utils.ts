@@ -8,8 +8,9 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
+import * as path from "path";
 
-import { DEPLOY_PATH, HILO_ABI_PATH, SUITS, RANKS } from "./constants";
+import { DEPLOY_PATH, HILO_ABI_PATH } from "./constants";
 
 export const EventABIs = {
     OpenRound: parseAbiItem("event OpenRound(uint256 roundIndex)"),
@@ -20,10 +21,19 @@ export const EventABIs = {
 };
 
 export async function contractInterfaceSetup(
-    privKey: string
+    privKey: string,
+    modeName: string
 ): Promise<[any, any]> {
-    const hiloJSON = await import(HILO_ABI_PATH, { assert: { type: "json" } });
-    const deployJSON = await import(DEPLOY_PATH, { assert: { type: "json" } });
+    const contractsOutDir = path.join("..", "contract", "out");
+    const abiPath = path.join(
+        contractsOutDir,
+        modeName + ".sol",
+        modeName + ".json"
+    );
+    const deployPath = path.join(contractsOutDir, "deployment.json");
+
+    const hiloJSON = await import(abiPath, { assert: { type: "json" } });
+    const deployJSON = await import(deployPath, { assert: { type: "json" } });
 
     const account = privateKeyToAccount(`0x${privKey}`);
     const walletClient = createWalletClient({
@@ -45,10 +55,4 @@ export async function contractInterfaceSetup(
         },
     });
     return [publicClient, contract];
-}
-
-export function formatCard(card: [number, number]): string {
-    const suit = SUITS[card[0]];
-    const rank = RANKS[card[1]];
-    return `${suit}-${rank}`;
 }

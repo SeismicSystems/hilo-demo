@@ -3,7 +3,7 @@
  */
 pragma solidity ^0.8.25;
 
-abstract contract HiLoBase {
+abstract contract HiLoBase { 
     struct Bet {
         uint128 amount;
         bool direction;

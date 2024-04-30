@@ -1,4 +1,4 @@
-import { EventABIs, contractInterfaceSetup } from "./utils";
+import { EventABIs, contractInterfaceSetup } from "./lib/utils";
 
 async function attachListener(publicClient: any, contract: any) {
     Object.values(EventABIs).forEach((abi) => {
@@ -24,6 +24,6 @@ async function attachListener(publicClient: any, contract: any) {
         throw new Error("Please specify valid dev private key in CLI.");
     }
 
-    let [publicClient, contract] = await contractInterfaceSetup(privKey);
+    let [publicClient, contract] = await contractInterfaceSetup(privKey, "HiLoCards");
     await attachListener(publicClient, contract);
 })();

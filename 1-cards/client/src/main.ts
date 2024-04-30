@@ -1,4 +1,4 @@
-import { HiLoCardsClient } from "./HiLoCardsClient";
+import { HiLoCardsClient } from "./lib/HiLoCardsClient";
 
 (async () => {
     const playerIdx = parseInt(process.argv[2]);

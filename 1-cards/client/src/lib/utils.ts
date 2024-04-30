@@ -10,8 +10,6 @@ import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
 import * as path from "path";
 
-import { DEPLOY_PATH, HILO_ABI_PATH } from "./constants";
-
 export const EventABIs = {
     OpenRound: parseAbiItem("event OpenRound(uint256 roundIndex)"),
     CloseRound: parseAbiItem("event CloseRound(uint256 roundIndex)"),
@@ -24,7 +22,7 @@ export async function contractInterfaceSetup(
     privKey: string,
     modeName: string
 ): Promise<[any, any]> {
-    const contractsOutDir = path.join("..", "contract", "out");
+    const contractsOutDir = path.join("..", "..", "..", "contract", "out");
     const abiPath = path.join(
         contractsOutDir,
         modeName + ".sol",

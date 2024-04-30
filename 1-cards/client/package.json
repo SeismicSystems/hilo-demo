@@ -4,9 +4,9 @@
   "description": "",
   "main": "client.ts",
   "scripts": {
-    "devA": "pnpm tsx main.ts 0 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
-    "devB": "pnpm tsx main.ts 1 5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a",
-    "listen": "pnpm tsx listen.ts 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+    "devA": "pnpm tsx src/main.ts 0 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
+    "devB": "pnpm tsx src/main.ts 1 5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a",
+    "listen": "pnpm tsx src/listen.ts 59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
   },
   "keywords": [],
   "author": "",

@@ -40,17 +40,21 @@ export abstract class HiLoBaseClient {
         this.broadcastPlayerClaim();
     }
 
-    protected async broadcastBetCommit() {
-        const betCommit = BigInt(
-            keccak256(
-                encodePacked(HiLoBaseClient.BetSolTypes, [
-                    this.latestBet.amount,
-                    this.latestBet.direction,
-                ]),
-            ),
-        );
-        await this.contract.write.commitBet([betCommit]);
-        console.log("  - Committed to bet");
+    protected attachGameLoop() {
+        Object.entries(EventABIs).forEach(([name, abi]) => {
+            this.publicClient.watchEvent({
+                address: this.contract.address,
+                event: abi,
+                strict: true,
+                onLogs: (logs: [any]) => {
+                    logs.forEach((log: any) =>
+                        this.eventHandlers[
+                            name as keyof typeof this.eventHandlers
+                        ](log),
+                    );
+                },
+            });
+        });
     }
 
     protected async openRoundHandler(log: any) {
@@ -80,23 +84,27 @@ export abstract class HiLoBaseClient {
         process.exit(0);
     }
 
-    protected async getBalances(): Promise<[number, number]> {
-        return [
-            await this.contract.read.getChips([0]),
-            await this.contract.read.getChips([1]),
-        ];
+    protected async broadcastPlayerClaim() {
+        console.log(
+            `== Claiming ${this.playerIdxToLabel(this.playerIdx)} slot`,
+        );
+        console.log("- Broadcasting");
+        await this.contract.write.claimPlayer([this.playerIdx]);
+        console.log("- Done");
+        console.log("==\n");
     }
 
-    protected validBet(
-        amount: number,
-        directionStr: string,
-        playerBalance: number,
-    ): boolean {
-        return (
-            ["H", "L"].includes(directionStr) &&
-            amount >= 0 &&
-            amount <= playerBalance
+    protected async broadcastBetCommit() {
+        const betCommit = BigInt(
+            keccak256(
+                encodePacked(HiLoBaseClient.BetSolTypes, [
+                    this.latestBet.amount,
+                    this.latestBet.direction,
+                ]),
+            ),
         );
+        await this.contract.write.commitBet([betCommit]);
+        console.log("  - Committed to bet");
     }
 
     protected async askValidBet(playerBalance: number): Promise<Bet> {
@@ -114,6 +122,18 @@ export abstract class HiLoBaseClient {
         };
     }
 
+    protected validBet(
+        amount: number,
+        directionStr: string,
+        playerBalance: number,
+    ): boolean {
+        return (
+            ["H", "L"].includes(directionStr) &&
+            amount >= 0 &&
+            amount <= playerBalance
+        );
+    }
+
     protected async logChipStatus(): Promise<number> {
         const balances = await this.getBalances();
         console.log("- Status");
@@ -128,37 +148,16 @@ export abstract class HiLoBaseClient {
         return balances[this.playerIdx];
     }
 
-    protected attachGameLoop() {
-        Object.entries(EventABIs).forEach(([name, abi]) => {
-            this.publicClient.watchEvent({
-                address: this.contract.address,
-                event: abi,
-                strict: true,
-                onLogs: (logs: [any]) => {
-                    logs.forEach((log: any) =>
-                        this.eventHandlers[
-                            name as keyof typeof this.eventHandlers
-                        ](log),
-                    );
-                },
-            });
-        });
+    protected async getBalances(): Promise<[number, number]> {
+        return [
+            await this.contract.read.getChips([0]),
+            await this.contract.read.getChips([1]),
+        ];
     }
 
     protected playerIdxToLabel(playerIndex: number): string {
         return playerIndex === 0 ? "Alice" : "Bob";
     }
 
-    protected async broadcastPlayerClaim() {
-        console.log(
-            `== Claiming ${this.playerIdxToLabel(this.playerIdx)} slot`,
-        );
-        console.log("- Broadcasting");
-        await this.contract.write.claimPlayer([this.playerIdx]);
-        console.log("- Done");
-        console.log("==\n");
-    }
-
     protected abstract logMarkInfo(): void;
-    protected abstract askValidBet(playerBalance: number): Promise<Bet>;
 }

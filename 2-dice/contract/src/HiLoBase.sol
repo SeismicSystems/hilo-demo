@@ -1,3 +1,6 @@
+/*
+ * A base contract for HiLo style games. 
+ */
 pragma solidity ^0.8.25;
 
 abstract contract HiLoBase {

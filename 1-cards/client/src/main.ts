@@ -10,5 +10,5 @@ import { HiLoCardsClient } from "./lib/HiLoCardsClient";
     }
 
     const client = new HiLoCardsClient(playerIdx);
-    await client.initializeClient(privKey, "HiLoCards");
+    await client.init(privKey, "HiLoCards");
 })();

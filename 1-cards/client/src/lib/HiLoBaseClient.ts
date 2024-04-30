@@ -79,6 +79,7 @@ export abstract class HiLoBaseClient {
     protected async gameEndHandler(log: any) {
         console.log("== Game has ended");
         await this.logChipStatus();
+        await this.logMarkInfo();
         console.log(`- ${this.playerIdxToLabel(log.args.winnerIdx)} wins`);
         console.log("==\n");
         process.exit(0);

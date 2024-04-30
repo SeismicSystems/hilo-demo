@@ -1,4 +1,4 @@
-import { HiLoDiceClient } from "./lib/HiLoDiceClient";
+import { HiLoDiceClient } from "./demo/HiLoDiceClient";
 
 (async () => {
     const playerIdx = parseInt(process.argv[2]);
@@ -10,5 +10,5 @@ import { HiLoDiceClient } from "./lib/HiLoDiceClient";
     }
 
     const client = new HiLoDiceClient(playerIdx);
-    await client.initializeClient(privKey, "HiLoDice");
+    await client.init(privKey, "HiLoDice");
 })();

@@ -1,4 +1,7 @@
-import { HiLoCardsClient } from "./lib/HiLoCardsClient";
+/*
+ * Entry point for the HiLo cards client.
+ */
+import { HiLoCardsClient } from "./demo/HiLoCardsClient";
 
 (async () => {
     const playerIdx = parseInt(process.argv[2]);

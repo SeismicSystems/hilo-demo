@@ -1,3 +1,6 @@
+/*
+ * Logs all HiLo events. Easy way to see what's happening on-chain.
+ */
 import { EventABIs, contractInterfaceSetup } from "./lib/utils";
 
 async function attachListener(publicClient: any, contract: any) {

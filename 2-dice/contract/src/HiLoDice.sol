@@ -1,12 +1,17 @@
+/*
+ * Game contract for dice-based HiLo.
+ */
 pragma solidity ^0.8.25;
 
 import {HiLoBase} from "./HiLoBase.sol";
 
 contract HiLoDice is HiLoBase {
 
-    uint128 public constant DICE_MULTIPLIER_SCALE = 100;
-
-    // based on self computed probabilities
+    /*
+     * Rewards for betting in the higher direction. As expected, the rewards are
+     * greater when you bet high on a large sum. Increases based on dice roll
+     * CDF.
+     */
     uint128[] public DICE_MULTIPLIERS = [
         100,
         106,
@@ -20,6 +25,7 @@ contract HiLoDice is HiLoBase {
         3500,
         0
     ];
+    uint128 public constant DICE_MULTIPLIER_SCALE = 100;
 
     constructor(
         uint256 _nRounds,
@@ -33,6 +39,10 @@ contract HiLoDice is HiLoBase {
         )
     {}
 
+    /*
+     * Rolls two dice. Mark is the sum of both rolls, indexed by 0 (eg snake
+     * eyes results in a mark of 0).
+     */
     function sampleNextMark() public view override returns (uint8) {
         uint256 rand1 = uint256(blockhash(block.number - 1));
         uint256 rand2 = uint256(blockhash(block.number - 1)) + 1;

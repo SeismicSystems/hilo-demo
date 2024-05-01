@@ -18,7 +18,7 @@ export type Bet = {
     amount: number;
     direction: boolean;
 };
-protected static BetSolTypes = ["uint128", "bool"];
+const BetSolTypes = ["uint128", "bool"];
 
 export abstract class HiLoBaseClient {
     protected publicClient: any;
@@ -135,7 +135,7 @@ export abstract class HiLoBaseClient {
     protected async broadcastBetCommit() {
         const betCommit = BigInt(
             keccak256(
-                encodePacked(HiLoBaseClient.BetSolTypes, [
+                encodePacked(BetSolTypes, [
                     this.latestBet.amount,
                     this.latestBet.direction,
                 ]),

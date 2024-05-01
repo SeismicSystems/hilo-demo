@@ -1,3 +1,6 @@
+/*
+ * Entry point for the HiLo dice client.
+ */
 import { HiLoDiceClient } from "./demo/HiLoDiceClient";
 
 (async () => {
